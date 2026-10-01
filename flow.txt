@@ -1,0 +1,44 @@
+                    main.py
+                       │
+                       ↓
+             Number of switches
+                       │
+                       ↓
+            Stack Port Type
+             TE / HU / TF
+                       │
+                       ↓
+              Stack Port 1-2
+                       │
+                       ↓
+        ┌──────────────┴──────────────┐
+        ↓              ↓              ↓
+    Switch 1        Switch 2       Switch 3
+        ↓              ↓              ↓
+       IP             IP             IP
+        ↓              ↓              ↓
+      Login          Login          Login
+        ↓              ↓              ↓
+    Configure      Configure      Configure
+        ↓              ↓              ↓
+    do write       do write       do write
+        │              │              │
+        └──────────────┬──────────────┘
+                       ↓
+              ALL CONFIGURED
+                       ↓
+              do reload ALL
+                       ↓
+                 Wait 5 min
+                       ↓
+        ┌──────────────┴──────────────┐
+        ↓              ↓              ↓
+   Reconnect 1     Reconnect 2    Reconnect 3
+        ↓              ↓              ↓
+       PASS           PASS           PASS
+        │              │              │
+        └──────────────┬──────────────┘
+                       ↓
+                VERIFY STACK
+                       ↓
+                 PASS / FAIL
