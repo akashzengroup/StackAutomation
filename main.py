@@ -2,6 +2,7 @@ import subprocess
 import time
 import inspect
 import re
+import weakref
 
 from connection import SwitchConnection
 from stack_config import configure_switch
