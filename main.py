@@ -1,3 +1,4 @@
+
 import subprocess
 import time
 import inspect
@@ -96,6 +97,11 @@ try:
     from tests.tc_stk_018 import run_tc_stk_018
 except ImportError:
     run_tc_stk_018 = None
+
+try:
+    from tests.tc_stk_019 import run_tc_stk_019
+except ImportError:
+    run_tc_stk_019 = None
 
 
 # =========================================================
@@ -625,15 +631,6 @@ def _get_detected_stack_unit_ids(
 
             continue
 
-        # -------------------------------------------------
-        # Expected format:
-        #
-        # 1  58:61:63:fa:35:27  controller  gi  tf
-        #
-        # 2  58:61:63:fa:35:28  backup      gi  tf
-        #
-        # -------------------------------------------------
-
         match = re.match(
             r"^(\d+)\s+"
             r"([0-9A-Fa-f]{2}:"
@@ -677,27 +674,6 @@ def wait_for_complete_stack(
     timeout=600,
     poll_interval=5
 ):
-
-    """
-    Wait until all expected stack members are visible
-    from Unit-ID 1.
-
-    IMPORTANT:
-
-    Unit-ID 1 being reachable is NOT enough.
-
-    Example for 4 switches:
-
-        1/4
-        2/4
-        3/4
-        4/4
-
-    Only after 4/4 is detected will the script continue.
-
-    This function only affects the initial startup flow.
-    Existing test-case scripts are not modified.
-    """
 
     if master_connection is None:
 
@@ -844,10 +820,6 @@ def wait_for_complete_stack(
                 expected_detected
             )
 
-            # -------------------------------------------------
-            # Display only when count changes
-            # -------------------------------------------------
-
             if (
                 detected_count
                 != last_detected_count
@@ -864,10 +836,6 @@ def wait_for_complete_stack(
                 last_detected_count = (
                     detected_count
                 )
-
-            # -------------------------------------------------
-            # Complete stack detected
-            # -------------------------------------------------
 
             if (
                 expected_units.issubset(
@@ -916,11 +884,6 @@ def wait_for_complete_stack(
                 return True
 
         except Exception:
-
-            # -------------------------------------------------
-            # Do NOT fail because switch may still be
-            # booting / joining / temporarily busy.
-            # -------------------------------------------------
 
             print(
                 f"\rWaiting for complete stack... "
@@ -972,12 +935,6 @@ def open_initial_master_terminal(
         "MASTER connection will remain active."
     )
 
-    # -----------------------------------------------------
-    # IMPORTANT:
-    #
-    # Wait for all expected members first.
-    # -----------------------------------------------------
-
     if not wait_for_complete_stack(
         master_connection=master_connection,
         expected_members=expected_members
@@ -994,12 +951,6 @@ def open_initial_master_terminal(
         )
 
         return False
-
-    # -----------------------------------------------------
-    # Complete stack is ready.
-    #
-    # Existing master_terminal.py remains unchanged.
-    # -----------------------------------------------------
 
     print(
         "\nOpening MASTER terminal..."
@@ -1147,18 +1098,6 @@ def _consume_connection_result(
     test_result
 ):
 
-    """
-    Some test cases perform a reboot/failover and return
-    a newly connected SwitchConnection object.
-
-    If a testcase returns a connection object, keep that
-    object as the current MASTER connection.
-
-    If the testcase returns True/False, preserve the
-    existing connection object and use the boolean as
-    the testcase result.
-    """
-
     if (
         hasattr(test_result, "connect")
         and hasattr(test_result, "send_command")
@@ -1190,19 +1129,6 @@ def test_case_menu(
 ):
 
     while True:
-
-        # -------------------------------------------------
-        # IMPORTANT:
-        #
-        # Do NOT automatically validate or replace the
-        # MASTER connection before every testcase.
-        #
-        # SwitchConnection.send_command() already handles
-        # connection health/reconnect when required.
-        #
-        # This prevents a stale connection check in main.py
-        # from incorrectly failing otherwise valid testcases.
-        # -------------------------------------------------
 
         # -------------------------------------------------
         # Keep Unit-1 credentials synchronized
@@ -1312,11 +1238,15 @@ def test_case_menu(
         )
 
         print(
-            "19. Open MASTER Terminal"
+            "19. TC-STK-019 - Different-Model Unit Join"
         )
 
         print(
-            "20. Exit"
+            "20. Open MASTER Terminal"
+        )
+
+        print(
+            "21. Exit"
         )
 
         print()
@@ -2144,16 +2074,6 @@ def test_case_menu(
 
             else:
 
-                # -------------------------------------------------
-                # IMPORTANT:
-                #
-                # Do NOT perform a separate MASTER health check here.
-                #
-                # Pass the current connection directly to TC-STK-018.
-                # The testcase / SwitchConnection handles connection
-                # recovery when it is actually required.
-                # -------------------------------------------------
-
                 common_arguments["master_connection"] = (
                     master_connection
                 )
@@ -2178,10 +2098,77 @@ def test_case_menu(
             )
 
         # =================================================
-        # MASTER TERMINAL
+        # TC-STK-019
+        # Different-Model Unit Join
         # =================================================
 
         elif choice == "19":
+
+            print(
+                "\n" + "=" * 70
+            )
+
+            print(
+                "              STARTING TC-STK-019"
+            )
+
+            print(
+                "=" * 70
+            )
+
+            if run_tc_stk_019 is None:
+
+                print(
+                    "\nERROR: tests/tc_stk_019.py "
+                    "was not found."
+                )
+
+                result = False
+
+            else:
+
+                # -------------------------------------------------
+                # Use the existing Unit-1 / MASTER connection.
+                #
+                # TC-STK-019 will:
+                #
+                #   1. Check the existing stack.
+                #   2. Ask the user to configure the different-
+                #      model switch.
+                #   3. Ask the user to reload the new switch.
+                #   4. Poll "do show stack" from Unit 1.
+                #   5. Poll every 5 seconds.
+                #   6. PASS when the new Unit-ID appears.
+                # -------------------------------------------------
+
+                common_arguments["master_connection"] = (
+                    master_connection
+                )
+
+                common_arguments["connection"] = (
+                    master_connection
+                )
+
+                tc_result = run_test_case_safely(
+                    run_tc_stk_019,
+                    common_arguments
+                )
+
+                master_connection, result = _consume_connection_result(
+                    master_connection,
+                    tc_result
+                )
+
+            display_result(
+                "TC-STK-019",
+                result
+            )
+
+        # =================================================
+        # MASTER TERMINAL
+        # =================================================
+
+        elif choice == "20":
 
             print(
                 "\n" + "=" * 70
@@ -2217,7 +2204,7 @@ def test_case_menu(
         # EXIT
         # =================================================
 
-        elif choice == "20":
+        elif choice == "21":
 
             print(
                 "\n" + "=" * 70
@@ -2254,7 +2241,7 @@ def test_case_menu(
             )
 
             print(
-                "Please select 1 to 20."
+                "Please select 1 to 21."
             )
 
 
@@ -2332,12 +2319,6 @@ def main():
             )
 
             return
-
-        # -------------------------------------------------
-        # IMPORTANT:
-        #
-        # Wait for ALL expected stack members.
-        # -------------------------------------------------
 
         terminal_opened = (
             open_initial_master_terminal(
@@ -2711,12 +2692,6 @@ def main():
 
         return
 
-    # -----------------------------------------------------
-    # IMPORTANT:
-    #
-    # Unit-ID 1 is UP, but wait for complete stack.
-    # -----------------------------------------------------
-
     terminal_opened = (
         open_initial_master_terminal(
             master_connection=master_connection,
@@ -2813,3 +2788,4 @@ if __name__ == "__main__":
         print(
             f"Unexpected error: {e}"
         )
+
