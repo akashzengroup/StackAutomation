@@ -103,6 +103,16 @@ try:
 except ImportError:
     run_tc_stk_019 = None
 
+# =========================================================
+# TC-STK-020
+# Different Firmware Unit Join / Auto Synchronization
+# =========================================================
+
+try:
+    from tests.tc_stk_020 import run_tc_stk_020
+except ImportError:
+    run_tc_stk_020 = None
+
 
 # =========================================================
 # STARTUP MODE
@@ -1242,11 +1252,16 @@ def test_case_menu(
         )
 
         print(
-            "20. Open MASTER Terminal"
+            "20. TC-STK-020 - Different Firmware Unit Join / "
+            "Auto Synchronization"
         )
 
         print(
-            "21. Exit"
+            "21. Open MASTER Terminal"
+        )
+
+        print(
+            "22. Exit"
         )
 
         print()
@@ -2165,10 +2180,87 @@ def test_case_menu(
             )
 
         # =================================================
-        # MASTER TERMINAL
+        # TC-STK-020
+        # Different-Firmware Unit Join /
+        # Auto Synchronization
         # =================================================
 
         elif choice == "20":
+
+            print(
+                "\n" + "=" * 70
+            )
+
+            print(
+                "              STARTING TC-STK-020"
+            )
+
+            print(
+                "=" * 70
+            )
+
+            if run_tc_stk_020 is None:
+
+                print(
+                    "\nERROR: tests/tc_stk_020.py "
+                    "was not found."
+                )
+
+                result = False
+
+            else:
+
+                # -------------------------------------------------
+                # Use the existing Unit-1 / MASTER connection.
+                #
+                # TC-STK-020 will:
+                #
+                #   1. Read the existing stack information.
+                #   2. Read the current firmware version.
+                #   3. Determine the next available Unit-ID.
+                #   4. Ask for the new switch credentials.
+                #   5. Verify the new switch has a different
+                #      firmware version.
+                #   6. Automatically configure the new switch.
+                #   7. Reload the new switch.
+                #   8. Monitor relevant stack/firmware logs
+                #      while the join/synchronization happens.
+                #   9. Verify the new Unit-ID joins the stack.
+                #  10. Verify firmware synchronization.
+                #
+                # The TC itself handles the parallel log
+                # monitoring. Only relevant logs generated
+                # during this process should be displayed.
+                # -------------------------------------------------
+
+                common_arguments["master_connection"] = (
+                    master_connection
+                )
+
+                common_arguments["connection"] = (
+                    master_connection
+                )
+
+                tc_result = run_test_case_safely(
+                    run_tc_stk_020,
+                    common_arguments
+                )
+
+                master_connection, result = _consume_connection_result(
+                    master_connection,
+                    tc_result
+                )
+
+            display_result(
+                "TC-STK-020",
+                result
+            )
+
+        # =================================================
+        # MASTER TERMINAL
+        # =================================================
+
+        elif choice == "21":
 
             print(
                 "\n" + "=" * 70
@@ -2204,7 +2296,7 @@ def test_case_menu(
         # EXIT
         # =================================================
 
-        elif choice == "21":
+        elif choice == "22":
 
             print(
                 "\n" + "=" * 70
@@ -2241,7 +2333,7 @@ def test_case_menu(
             )
 
             print(
-                "Please select 1 to 21."
+                "Please select 1 to 22."
             )
 
 
